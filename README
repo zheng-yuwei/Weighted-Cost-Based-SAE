@@ -1,0 +1,65 @@
+version 2.0 weighted cost版
+
+PSO优化weighted cost(非并行) -> weighted cost + runSAEOnce(activation function + sparse + denoising) -> 发邮件
+
+一个问题是：速度太慢了 （基本时间 * PSO的population * PSO的iteration），基本时间是：30 min...逆天
+			所以下一个版本大概会是在PSO中加入并行处理.
+
+main()
+|---loadMNISTData( imagesFile, labelsFile, isShowImages ) // for train
+|---loadMNISTData( imagesFile, labelsFile, isShowImages ) // for test
+|       |---loadMNISTImages( imagesFile, isShowImages, varargin )
+|       |       |---whitening( data )
+|       |---loadMNISTLabels( labelsFile )
+|
+|---getSAEOption( preOption4SAE, varargin )
+|		|---getAEOption( preOption4AE )
+|		|---getBPOption( preOption4BP )
+|---getBPNNOption( preOption4BPNN )
+|
+|---runSAEOnce( images4Train, labels4Train, images4Test, labels4Test, architecture, option4SAE, option4BPNN, isDispNetwork, isDispInfo )
+|       |---trainSAE( input, output, architecture, preOption4SAE ) // SAE
+|       |       |---initializeParameters( architecture4AE ) <---------------------------------------------------------------+
+|       |		|---trainAE( input, theta4AE, architecture4AE, option4AE )                          						|
+|       |		|		|---denoisingSwitch( input, countAE, option4AE )                                    				|
+|       |		|		|---minFunc( fun, theta4AE, options )                                               				|
+|       |		|		|		|---calcAEBatch( input, theta4AE, architecture4AE, option4AE, (inputCorrupted,) ~ )			|
+|		|		|		|---predictNN( input, architecture4AE(1:2), theta4AE(W1,b1), option4AE )							|
+|		|		|																											|
+|		|		|------------------------------------- until train all stacked AE ------------------------------------------+
+|		|		|
+|       |		|---initializeParameters( architecture4BP, lastActiveIsSoftmax, varargin )
+|       |		|---trainBPNN( input, output, theta4BP, architecture4BP, option4BP )
+|       |		|		|---fun = @(x) calcBPBatch( input, output, x, architecture, option4BP )
+|       |		|		|---minFunc( fun, theta4BP, options )
+|		|
+|		|---displayNetwork( W )
+|		|
+|       |---predictNN( input, architecture, theta4SAE, preOption4BPNN )
+|       |---getAccuracy( predictedLabels, labels )
+|       |
+|       |---trainBPNN( input, output, theta4SAE, architecture, preOption4BPNN ) // fine-tune
+|       |
+|       |---predictNN( input, architecture, theta4SAE, preOption4BPNN )
+|       |---getAccuracy( predictedLabels, labels )
+|
+|---@(x) fun = @runSAEOnce(...)
+|
+|---optWeightedCostByPSO( fun, architecture, option4SAE, option4PSO )
+|		|---initialize ‘weightedCost’
+|		|<----------------------------------------------+
+|       |---for each weightedCost:						|
+|		|		runSAEOnce( weightedCost ) 				|
+|       |												|
+|       |---Update ‘weightedCost’						|
+|       |												|
+|       |---Satisfy end condition？-------- No ---------+
+|               |
+|               | Yes
++---------------+
+|
+|---save result optTheta accuracy & mail2Me( 'Finished', ['结果为：' num2str(accuracy)], 'result.mat' )
+|
+end
+
+by 郑煜伟 Aewil 2016-04
