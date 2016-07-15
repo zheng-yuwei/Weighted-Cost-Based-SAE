@@ -1,4 +1,7 @@
 version 2.0 weighted cost版
+训练一个SAE：
+预训练AE阶段，对每个输入神经元与输出神经元间的欧式距离进行加权作为cost function；
+微调SAE阶段用BP。而加权权重的选择，用PSO进行优化。
 
 PSO优化weighted cost(非并行) -> weighted cost + runSAEOnce(activation function + sparse + denoising) -> 发邮件
 

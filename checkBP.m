@@ -1,4 +1,4 @@
-function [diff, numGradient, grad]= checkAE( images )
+function [diff, numGradient, grad] = checkBP(images, labels)
 %用于检查sparseAutoencoderEpoch函数所得到的梯度grad是否有效
 % by 郑煜伟 Aewil 2016-04
 % 我们用数值计算梯度的方法得到梯度numGradient（很慢），
@@ -6,24 +6,29 @@ function [diff, numGradient, grad]= checkAE( images )
 % 得到两者梯度向量的欧式距离大小（应该非常之小才对）
 
 image = images(:, 1:1);% 因为计算很慢，所以才抽取一个样本（这个图的theta有308308维！）
+label = labels(1, 1);
 
-architecture = [ 784 196 784 ]; % AE网络的结构: inputSize -> hiddenSize -> outputSize
-theta = initializeParameters( architecture ); % 依据网络结构初始化网络参数
+architecture = [ 784 196 10 ]; % AE网络的结构: inputSize -> hiddenSize -> outputSize
+lastActiveIsSoftmax = 1;
+theta = initializeParameters(architecture,...
+    lastActiveIsSoftmax); % 依据网络结构初始化网络参数
 
-option4AE.activation  = { 'reLU' };
-option4AE.isSparse    = 1;
-option4AE.sparseRho   = 0.1;
-option4AE.sparseBeta  = 3;
-option4AE.isDenoising = 0;
-option4AE.decayLambda = 1;
+option.activation  = { 'sigmoid', 'softmax' };
+option.isSparse    = 0;
+option.sparseRho   = 0.01;
+option.sparseBeta  = 3;
+option.isDenoising = 0;
+option.decayLambda = 1;
+% option4AE.activation = { 'softmax' };
+% option4AE.activation = { 'sigmoid'; 'sigmoid'; 'softmax' };
 
 
 % 分析方法
-[ ~,grad] = calcAEBatch( image, theta, architecture, option4AE );
+[~, grad] = calcBPBatch(image, label, theta, architecture, option);
 
 % 数值计算方法
 numGradient = computeNumericalGradient( ...
-    @(x) calcAEBatch( image, x, architecture, option4AE ), theta );
+    @(x) calcBPBatch(image, label, x, architecture, option ), theta );
 
 % 比较梯度的欧式距离
 diff = norm( numGradient - grad ) / norm( numGradient + grad );
